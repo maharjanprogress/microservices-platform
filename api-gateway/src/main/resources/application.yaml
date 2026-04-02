@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: api-gateway
+  security:
+    user:
+      name: ${ACTUATOR_USERNAME:actuator}
+      password: ${ACTUATOR_PASSWORD:actuator-secret}
   cloud:
     gateway:
       server:
@@ -36,7 +40,7 @@ management:
         include: health,info,metrics,prometheus,gateway
   endpoint:
     health:
-      show-details: always
+      show-details: when_authorized
     gateway:
       access: read-only
   info:
@@ -52,3 +56,7 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+  instance:
+    metadata-map:
+      user.name: ${spring.security.user.name}
+      user.password: ${spring.security.user.password}
