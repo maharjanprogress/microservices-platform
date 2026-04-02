@@ -26,9 +26,8 @@ spring:
               enabled: false
           metrics:
             enabled: true
-            tags:
-              path:
-                enabled: true
+            path-tags:
+              enabled: true
 
 management:
   endpoints:
