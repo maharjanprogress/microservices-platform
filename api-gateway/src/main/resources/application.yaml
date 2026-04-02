@@ -24,6 +24,11 @@ spring:
           discovery:
             locator:
               enabled: false
+          metrics:
+            enabled: true
+            tags:
+              path:
+                enabled: true
 
 management:
   endpoints:
@@ -33,6 +38,8 @@ management:
   endpoint:
     health:
       show-details: always
+    gateway:
+      access: read-only
   info:
     env:
       enabled: true
