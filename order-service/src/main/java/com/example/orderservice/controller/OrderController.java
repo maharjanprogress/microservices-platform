@@ -1,4 +1,4 @@
-package com.example.paymentservice;
+package com.example.orderservice.controller;
 
 import java.util.Map;
 
@@ -7,11 +7,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/payments")
-public class PaymentController {
+@RequestMapping("/api/orders")
+public class OrderController {
 
     @GetMapping("/ping")
     public Map<String, String> ping() {
-        return Map.of("service", "payment-service", "status", "ok");
+        return Map.of("service", "order-service", "status", "ok");
     }
 }

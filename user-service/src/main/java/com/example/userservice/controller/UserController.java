@@ -1,4 +1,4 @@
-package com.example.userservice;
+package com.example.userservice.controller;
 
 import java.util.Map;
 
