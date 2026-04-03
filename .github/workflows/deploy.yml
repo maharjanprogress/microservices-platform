@@ -1,0 +1,66 @@
+name: Deploy Changed Services
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  detect-and-deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # need previous commit to diff against
+
+      - name: Detect changed services
+        id: changes
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD)
+          echo "Changed files: $CHANGED"
+
+          check() { echo "$CHANGED" | grep -q "^$1/" && echo "true" || echo "false"; }
+
+          echo "discovery=$(check discovery-server)" >> $GITHUB_OUTPUT
+          echo "user=$(check user-service)"          >> $GITHUB_OUTPUT
+          echo "order=$(check order-service)"        >> $GITHUB_OUTPUT
+          echo "payment=$(check payment-service)"    >> $GITHUB_OUTPUT
+          echo "gateway=$(check api-gateway)"        >> $GITHUB_OUTPUT
+          echo "admin=$(check admin-server)"         >> $GITHUB_OUTPUT
+          echo "infra=$(check infra)"                >> $GITHUB_OUTPUT
+
+      - name: Rebuild discovery-server
+        if: steps.changes.outputs.discovery == 'true'
+        working-directory: infra
+        run: docker compose up -d --build discovery-server
+
+      - name: Rebuild user-service
+        if: steps.changes.outputs.user == 'true'
+        working-directory: infra
+        run: docker compose up -d --build user-service
+
+      - name: Rebuild order-service
+        if: steps.changes.outputs.order == 'true'
+        working-directory: infra
+        run: docker compose up -d --build order-service
+
+      - name: Rebuild payment-service
+        if: steps.changes.outputs.payment == 'true'
+        working-directory: infra
+        run: docker compose up -d --build payment-service
+
+      - name: Rebuild api-gateway
+        if: steps.changes.outputs.gateway == 'true'
+        working-directory: infra
+        run: docker compose up -d --build api-gateway
+
+      - name: Rebuild admin-server
+        if: steps.changes.outputs.admin == 'true'
+        working-directory: infra
+        run: docker compose up -d --build admin-server
+
+      - name: Reload infra (prometheus/grafana config)
+        if: steps.changes.outputs.infra == 'true'
+        working-directory: infra
+        run: docker compose up -d prometheus grafana
