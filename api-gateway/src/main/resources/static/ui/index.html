@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gateway JWT Test UI</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #0a0f14;
+            --panel: #131c24;
+            --panel-border: #24313d;
+            --text: #e6edf3;
+            --muted: #9fb0c0;
+            --accent: #46c2ff;
+            --danger: #ff6b6b;
+            --success: #5de2a5;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, sans-serif;
+            background: radial-gradient(circle at top, #16212b 0%, var(--bg) 55%);
+            color: var(--text);
+        }
+
+        main {
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 32px 20px 48px;
+        }
+
+        h1, h2 {
+            margin: 0 0 12px;
+        }
+
+        p {
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .grid.two {
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        }
+
+        .card {
+            background: rgba(19, 28, 36, 0.92);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(70, 194, 255, 0.12);
+            color: var(--accent);
+            font-size: 14px;
+        }
+
+        label {
+            display: block;
+            margin: 14px 0 8px;
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid #324353;
+            background: #0d151d;
+            color: var(--text);
+            font-size: 15px;
+        }
+
+        button {
+            appearance: none;
+            border: 0;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-top: 16px;
+            background: linear-gradient(135deg, #46c2ff, #1d86ff);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button.danger {
+            background: linear-gradient(135deg, #ff8a7a, #ff5d5d);
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .message {
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            background: #101820;
+            border: 1px solid #2c3d4b;
+            color: var(--muted);
+        }
+
+        pre {
+            margin: 12px 0 0;
+            padding: 16px;
+            background: #091118;
+            border-radius: 12px;
+            border: 1px solid #22313e;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: "Fira Code", "JetBrains Mono", ui-monospace, monospace;
+            color: #d7e0e8;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <div class="card">
+        <h1>Gateway JWT Test UI</h1>
+        <p>Use this page to log in through the gateway, inspect the JWT payload, and test protected downstream routes.</p>
+        <div class="status-row">
+            <div id="loginStatus" class="status-pill">Not logged in</div>
+            <button id="logoutButton" class="danger hidden" type="button">Logout</button>
+        </div>
+    </div>
+
+    <section class="grid two" style="margin-top: 20px;">
+        <div class="card">
+            <h2>Login Panel</h2>
+            <label for="username">Username</label>
+            <input id="username" type="text" autocomplete="username" placeholder="admin">
+
+            <label for="password">Password</label>
+            <input id="password" type="password" autocomplete="current-password" placeholder="admin123">
+
+            <button id="loginButton" type="button">Login</button>
+            <div id="loginMessage" class="message">Use <strong>admin/admin123</strong> for the protected admin-only endpoints.</div>
+        </div>
+
+        <div id="tokenPanel" class="card hidden">
+            <h2>Token Panel</h2>
+            <div id="tokenMeta" class="message">No token loaded.</div>
+            <pre id="tokenPayload">{}</pre>
+        </div>
+    </section>
+
+    <section id="testPanel" class="card hidden" style="margin-top: 20px;">
+        <h2>Test Panel</h2>
+        <p>These calls go through the gateway with <code>Authorization: Bearer &lt;token&gt;</code>.</p>
+        <div class="actions">
+            <button type="button" data-endpoint="/api/users/authenticated">Call /api/users/authenticated</button>
+            <button type="button" data-endpoint="/api/orders/authenticated">Call /api/orders/authenticated</button>
+            <button type="button" data-endpoint="/api/payments/authenticated">Call /api/payments/authenticated</button>
+        </div>
+        <div id="callMessage" class="message">No requests sent yet.</div>
+        <pre id="callOutput">{}</pre>
+    </section>
+</main>
+
+<script>
+    const TOKEN_KEY = "jwt_token";
+    const loginStatus = document.getElementById("loginStatus");
+    const logoutButton = document.getElementById("logoutButton");
+    const loginButton = document.getElementById("loginButton");
+    const loginMessage = document.getElementById("loginMessage");
+    const tokenPanel = document.getElementById("tokenPanel");
+    const tokenMeta = document.getElementById("tokenMeta");
+    const tokenPayload = document.getElementById("tokenPayload");
+    const testPanel = document.getElementById("testPanel");
+    const callMessage = document.getElementById("callMessage");
+    const callOutput = document.getElementById("callOutput");
+
+    function setMessage(element, text, type) {
+        element.textContent = text;
+        element.className = "message" + (type ? " " + type : "");
+    }
+
+    function decodePayload(token) {
+        const parts = token.split(".");
+        if (parts.length !== 3) {
+            throw new Error("Token does not look like a JWT");
+        }
+        const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+        const normalized = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, "=");
+        return JSON.parse(atob(normalized));
+    }
+
+    function formatDate(epochSeconds) {
+        if (!epochSeconds) {
+            return "n/a";
+        }
+        return new Date(epochSeconds * 1000).toLocaleString();
+    }
+
+    function renderAuthState() {
+        const token = localStorage.getItem(TOKEN_KEY);
+        if (!token) {
+            loginStatus.textContent = "Not logged in";
+            logoutButton.classList.add("hidden");
+            tokenPanel.classList.add("hidden");
+            testPanel.classList.add("hidden");
+            tokenPayload.textContent = "{}";
+            tokenMeta.textContent = "No token loaded.";
+            return;
+        }
+
+        try {
+            const payload = decodePayload(token);
+            loginStatus.textContent = "Logged in as: " + (payload.sub || "unknown");
+            logoutButton.classList.remove("hidden");
+            tokenPanel.classList.remove("hidden");
+            testPanel.classList.remove("hidden");
+            tokenMeta.textContent = "Expires at: " + formatDate(payload.exp);
+            tokenPayload.textContent = JSON.stringify(payload, null, 2);
+        } catch (error) {
+            localStorage.removeItem(TOKEN_KEY);
+            setMessage(loginMessage, "Stored token is invalid. Please log in again.", "error");
+            renderAuthState();
+        }
+    }
+
+    async function login() {
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value;
+
+        try {
+            const response = await fetch("/api/users/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                setMessage(loginMessage, data.message || "Login failed.", "error");
+                return;
+            }
+
+            localStorage.setItem(TOKEN_KEY, data.token);
+            setMessage(loginMessage, "Login successful.", "success");
+            renderAuthState();
+        } catch (error) {
+            setMessage(loginMessage, "Request failed: " + error.message, "error");
+        }
+    }
+
+    async function callEndpoint(endpoint) {
+        const token = localStorage.getItem(TOKEN_KEY);
+        if (!token) {
+            setMessage(callMessage, "Log in first.", "error");
+            return;
+        }
+
+        try {
+            const response = await fetch(endpoint, {
+                headers: {
+                    Authorization: "Bearer " + token
+                }
+            });
+            const text = await response.text();
+            const body = text ? JSON.parse(text) : {};
+
+            if (response.status === 401 || response.status === 403) {
+                setMessage(callMessage, "Access Denied (" + response.status + ")", "error");
+            } else if (response.ok) {
+                setMessage(callMessage, "Request succeeded.", "success");
+            } else {
+                setMessage(callMessage, "Request failed with status " + response.status, "error");
+            }
+
+            callOutput.textContent = JSON.stringify(body, null, 2);
+        } catch (error) {
+            setMessage(callMessage, "Request failed: " + error.message, "error");
+            callOutput.textContent = "{}";
+        }
+    }
+
+    loginButton.addEventListener("click", login);
+    logoutButton.addEventListener("click", () => {
+        localStorage.removeItem(TOKEN_KEY);
+        setMessage(loginMessage, "Logged out.", "");
+        setMessage(callMessage, "No requests sent yet.", "");
+        callOutput.textContent = "{}";
+        renderAuthState();
+    });
+
+    document.querySelectorAll("[data-endpoint]").forEach(button => {
+        button.addEventListener("click", () => callEndpoint(button.dataset.endpoint));
+    });
+
+    renderAuthState();
+</script>
+</body>
+</html>

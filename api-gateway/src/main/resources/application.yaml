@@ -33,6 +33,11 @@ spring:
             path-tags:
               enabled: true
 
+app:
+  security:
+    jwt-secret: ${JWT_SECRET:dev-jwt-secret-change-in-prod}
+    gateway-secret: ${GATEWAY_SECRET:dev-secret}
+
 management:
   metrics:
     distribution:

@@ -9,6 +9,11 @@ spring:
       name: ${ACTUATOR_USERNAME:actuator}
       password: ${ACTUATOR_PASSWORD:actuator-secret}
 
+app:
+  security:
+    jwt-secret: ${JWT_SECRET:dev-jwt-secret-change-in-prod}
+    gateway-secret: ${GATEWAY_SECRET:dev-secret}
+
 management:
   metrics:
     distribution:
