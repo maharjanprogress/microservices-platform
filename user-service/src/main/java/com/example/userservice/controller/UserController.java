@@ -52,7 +52,7 @@ public class UserController {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        return Map.of("service", "user-service-test", "status", "ok");
+        return Map.of("service", "user-service-test1", "status", "ok");
     }
 
     @GetMapping("/authenticated")

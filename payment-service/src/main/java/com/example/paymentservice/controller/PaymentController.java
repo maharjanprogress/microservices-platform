@@ -23,7 +23,7 @@ public class PaymentController {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        return Map.of("service", "payment-service-test", "status", "ok");
+        return Map.of("service", "payment-service-test1", "status", "ok");
     }
 
     @GetMapping("/authenticated")
