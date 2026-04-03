@@ -36,11 +36,14 @@ public class AdminServerSecurityConfig {
                         .loginPage("/login")
                         .successHandler(successHandler)
                 )
-                .logout(logout -> logout.logoutUrl("/logout"))
+                .logout(logout -> logout
+                        .logoutRequestMatcher(request -> "/logout".equals(request.getServletPath()))
+                        .logoutSuccessUrl("/login?logout")
+                )
                 .httpBasic(Customizer.withDefaults())
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .ignoringRequestMatchers("/instances", "/actuator/**")
+                        .ignoringRequestMatchers("/instances", "/actuator/**","/logout")
                 )
                 .rememberMe(rememberMe -> rememberMe.key(UUID.randomUUID().toString()));
 
