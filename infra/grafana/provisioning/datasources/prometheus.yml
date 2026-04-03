@@ -6,5 +6,10 @@ datasources:
     type: prometheus
     access: proxy
     url: http://prometheus:9090
+    jsonData:
+      manageAlerts: true
+      allowAsRecordingRulesTarget: true
+      prometheusType: Prometheus
+      timeInterval: 15s
     isDefault: true
     editable: true

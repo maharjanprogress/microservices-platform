@@ -140,7 +140,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(spring_cloud_gateway_requests_seconds_count{job=\"api-gateway\",status=~\"5..\"}[5m])) by (routeId)",
+          "expr": "((sum(rate(spring_cloud_gateway_requests_seconds_count{job=\"api-gateway\",outcome=\"SERVER_ERROR\"}[5m])) by (routeId)) or on(routeId) (0 * sum(rate(spring_cloud_gateway_requests_seconds_count{job=\"api-gateway\"}[5m])) by (routeId)))",
           "legendFormat": "{{routeId}}",
           "refId": "A"
         }
@@ -428,7 +428,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "100 * sum(rate(spring_cloud_gateway_requests_seconds_count{job=\"api-gateway\",status=~\"5..\"}[5m])) by (routeId) / clamp_min(sum(rate(spring_cloud_gateway_requests_seconds_count{job=\"api-gateway\"}[5m])) by (routeId), 0.001)",
+          "expr": "100 * (((sum(rate(spring_cloud_gateway_requests_seconds_count{job=\"api-gateway\",outcome=\"SERVER_ERROR\"}[5m])) by (routeId)) or on(routeId) (0 * sum(rate(spring_cloud_gateway_requests_seconds_count{job=\"api-gateway\"}[5m])) by (routeId)))) / clamp_min(sum(rate(spring_cloud_gateway_requests_seconds_count{job=\"api-gateway\"}[5m])) by (routeId), 0.001)",
           "legendFormat": "{{routeId}}",
           "refId": "A"
         }

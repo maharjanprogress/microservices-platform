@@ -1,0 +1,91 @@
+groups:
+  - name: microservices-platform
+    rules:
+      - alert: MicroserviceDown
+        expr: up{job=~"api-gateway|user-service|order-service|payment-service|admin-server"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "{{ $labels.job }} is down"
+          description: "{{ $labels.job }} has been unreachable by Prometheus for more than 2 minutes."
+
+      - alert: GatewayHigh5xxRate
+        expr: |
+          (
+            sum(rate(spring_cloud_gateway_requests_seconds_count{job="api-gateway",outcome="SERVER_ERROR"}[5m]))
+            /
+            clamp_min(sum(rate(spring_cloud_gateway_requests_seconds_count{job="api-gateway"}[5m])), 0.001)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          category: errors
+        annotations:
+          summary: "Gateway 5xx rate is above 5%"
+          description: "The API gateway has sustained a 5xx error rate above 5% for 5 minutes."
+
+      - alert: GatewayHighP95Latency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (
+              rate(spring_cloud_gateway_requests_seconds_bucket{job="api-gateway"}[5m])
+            )
+          ) > 1
+        for: 10m
+        labels:
+          severity: warning
+          category: latency
+        annotations:
+          summary: "Gateway p95 latency is above 1 second"
+          description: "The API gateway p95 latency has been above 1 second for 10 minutes."
+
+      - alert: BusinessServiceHighP95Latency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (job, le) (
+              rate(http_server_requests_seconds_bucket{job=~"user-service|order-service|payment-service"}[5m])
+            )
+          ) > 1
+        for: 10m
+        labels:
+          severity: warning
+          category: latency
+        annotations:
+          summary: "{{ $labels.job }} p95 latency is above 1 second"
+          description: "{{ $labels.job }} has sustained p95 request latency above 1 second for 10 minutes."
+
+      - alert: HighJvmHeapUsage
+        expr: |
+          (
+            sum by (job, instance) (
+              jvm_memory_used_bytes{job=~"api-gateway|user-service|order-service|payment-service|admin-server",area="heap"}
+            )
+            /
+            clamp_min(
+              sum by (job, instance) (
+                jvm_memory_max_bytes{job=~"api-gateway|user-service|order-service|payment-service|admin-server",area="heap"}
+              ),
+              1
+            )
+          ) > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          category: memory
+        annotations:
+          summary: "{{ $labels.job }} heap usage is above 85%"
+          description: "{{ $labels.job }} has used more than 85% of its configured heap for 10 minutes."
+
+      - alert: HighProcessCpuUsage
+        expr: process_cpu_usage{job=~"api-gateway|user-service|order-service|payment-service|admin-server"} > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          category: cpu
+        annotations:
+          summary: "{{ $labels.job }} CPU usage is above 80%"
+          description: "{{ $labels.job }} process CPU usage has been above 80% for 10 minutes."
