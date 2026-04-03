@@ -12,6 +12,11 @@ public class PaymentController {
 
     @GetMapping("/ping")
     public Map<String, String> ping() {
+        try {
+            Thread.sleep(4000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         return Map.of("service", "payment-service", "status", "ok");
     }
 }
