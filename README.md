@@ -34,8 +34,7 @@ A Spring Boot microservices demo built around service discovery, gateway routing
 ├── infra/
 ├── order-service/
 ├── payment-service/
-├── user-service/
-└── spring-microservices-monitoring-guide.md
+└── user-service/
 ```
 
 ## Quick Start With Docker
