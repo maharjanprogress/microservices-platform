@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: order-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/microservices_platform?currentSchema=order_service}
+    username: ${SPRING_DATASOURCE_USERNAME:order_service_app}
+    password: ${SPRING_DATASOURCE_PASSWORD:order_service_secret}
   security:
     user:
       name: ${ACTUATOR_USERNAME:actuator}

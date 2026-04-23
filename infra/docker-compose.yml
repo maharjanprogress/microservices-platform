@@ -1,4 +1,32 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PLATFORM_DB_NAME: ${PLATFORM_DB_NAME:-microservices_platform}
+      DB_ADMIN_USERNAME: ${DB_ADMIN_USERNAME:-platform_admin}
+      DB_ADMIN_PASSWORD: ${DB_ADMIN_PASSWORD:-platform_admin-secret}
+      USER_DB_USERNAME: ${USER_DB_USERNAME:-user_service_app}
+      USER_DB_PASSWORD: ${USER_DB_PASSWORD:-user_service_secret}
+      ORDER_DB_USERNAME: ${ORDER_DB_USERNAME:-order_service_app}
+      ORDER_DB_PASSWORD: ${ORDER_DB_PASSWORD:-order_service_secret}
+      PAYMENT_DB_USERNAME: ${PAYMENT_DB_USERNAME:-payment_service_app}
+      PAYMENT_DB_PASSWORD: ${PAYMENT_DB_PASSWORD:-payment_service_secret}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - monitoring-net
+
   discovery-server:
     build:
       context: ../discovery-server
@@ -17,7 +45,10 @@ services:
       context: ../user-service
     container_name: user-service
     depends_on:
-      - discovery-server
+      discovery-server:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     environment:
       SERVER_PORT: 8081
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
@@ -25,6 +56,9 @@ services:
       ACTUATOR_PASSWORD: ${ACTUATOR_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       GATEWAY_SECRET: ${GATEWAY_SECRET}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${PLATFORM_DB_NAME:-microservices_platform}?currentSchema=user_service
+      SPRING_DATASOURCE_USERNAME: ${USER_DB_USERNAME:-user_service_app}
+      SPRING_DATASOURCE_PASSWORD: ${USER_DB_PASSWORD:-user_service_secret}
     networks:
       - monitoring-net
 
@@ -33,7 +67,10 @@ services:
       context: ../order-service
     container_name: order-service
     depends_on:
-      - discovery-server
+      discovery-server:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     environment:
       SERVER_PORT: 8082
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
@@ -41,6 +78,9 @@ services:
       ACTUATOR_PASSWORD: ${ACTUATOR_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       GATEWAY_SECRET: ${GATEWAY_SECRET}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${PLATFORM_DB_NAME:-microservices_platform}?currentSchema=order_service
+      SPRING_DATASOURCE_USERNAME: ${ORDER_DB_USERNAME:-order_service_app}
+      SPRING_DATASOURCE_PASSWORD: ${ORDER_DB_PASSWORD:-order_service_secret}
     networks:
       - monitoring-net
 
@@ -49,7 +89,10 @@ services:
       context: ../payment-service
     container_name: payment-service
     depends_on:
-      - discovery-server
+      discovery-server:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     environment:
       SERVER_PORT: 8083
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
@@ -57,6 +100,9 @@ services:
       ACTUATOR_PASSWORD: ${ACTUATOR_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       GATEWAY_SECRET: ${GATEWAY_SECRET}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${PLATFORM_DB_NAME:-microservices_platform}?currentSchema=payment_service
+      SPRING_DATASOURCE_USERNAME: ${PAYMENT_DB_USERNAME:-payment_service_app}
+      SPRING_DATASOURCE_PASSWORD: ${PAYMENT_DB_PASSWORD:-payment_service_secret}
     networks:
       - monitoring-net
 
@@ -86,11 +132,10 @@ services:
       context: ../admin-server
     container_name: admin-server
     depends_on:
-      - discovery-server
-      - api-gateway
-      - user-service
-      - order-service
-      - payment-service
+      discovery-server:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     environment:
       SERVER_PORT: 9090
       EUREKA_DEFAULT_ZONE: ${EUREKA_DEFAULT_ZONE}
@@ -100,6 +145,9 @@ services:
       ADMIN_SERVER_PASSWORD: ${ADMIN_SERVER_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       GATEWAY_SECRET: ${GATEWAY_SECRET}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${PLATFORM_DB_NAME:-microservices_platform}
+      SPRING_DATASOURCE_USERNAME: ${DB_ADMIN_USERNAME:-platform_admin}
+      SPRING_DATASOURCE_PASSWORD: ${DB_ADMIN_PASSWORD:-platform_admin-secret}
     ports:
       - "${ADMIN_SERVER_PORT}:9090"
     networks:
@@ -162,5 +210,6 @@ networks:
     driver: bridge
 
 volumes:
+  postgres-data:
   prometheus-data:
   grafana-data:
