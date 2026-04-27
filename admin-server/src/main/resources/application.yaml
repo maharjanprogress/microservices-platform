@@ -10,9 +10,11 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:platform_admin}
     password: ${SPRING_DATASOURCE_PASSWORD:platform_admin-secret}
   flyway:
-    enabled: true
+    enabled: false
+    default-schema: ${SPRING_FLYWAY_DEFAULT_SCHEMA:admin_server}
+    schemas: ${SPRING_FLYWAY_SCHEMAS:admin_server}
     locations: classpath:db/migration
-    baseline-on-migrate: true
+    baseline-on-migrate: false
   thymeleaf:
     check-template-location: false
   boot:

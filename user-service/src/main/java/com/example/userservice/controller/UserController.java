@@ -1,11 +1,15 @@
 package com.example.userservice.controller;
 
+import java.time.OffsetDateTime;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.example.userservice.dto.LoginRequest;
 import com.example.userservice.dto.LoginResponse;
+import com.example.userservice.entity.User;
+import com.example.userservice.repo.UserRepository;
 import com.example.userservice.security.JwtUtil;
 import com.example.userservice.service.UserAuthenticationService;
 import org.springframework.http.HttpStatus;
@@ -26,10 +30,12 @@ public class UserController {
 
     private final UserAuthenticationService userAuthenticationService;
     private final JwtUtil jwtUtil;
+    private final UserRepository userRepository;
 
-    public UserController(UserAuthenticationService userAuthenticationService, JwtUtil jwtUtil) {
+    public UserController(UserAuthenticationService userAuthenticationService, JwtUtil jwtUtil, UserRepository userRepository) {
         this.userAuthenticationService = userAuthenticationService;
         this.jwtUtil = jwtUtil;
+        this.userRepository = userRepository;
     }
 
     @PostMapping("/login")
@@ -59,6 +65,12 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     public Map<String, String> authenticated() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = new User();
+        user.setEmail(System.currentTimeMillis() + "@gmail.com");
+        user.setUsername(String.valueOf(System.currentTimeMillis()));
+        user.setCreatedAt(OffsetDateTime.now());
+        userRepository.save(user);
+        System.out.println(userRepository.count());
         return Map.of(
                 "service", "user-service",
                 "user", authentication.getName(),
